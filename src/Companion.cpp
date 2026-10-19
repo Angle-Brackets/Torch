@@ -184,6 +184,17 @@ static std::string GetTypeNode(YAML::Node& node) {
     return type;
 }
 
+// std::filesystem::relative resolves both paths on disk (weakly_canonical). Where that isn't possible, as on
+// Switch (no realpath) with device paths like "romfs:/assets/...", compare the normalized paths as text.
+static std::filesystem::path RelativeTo(const std::filesystem::path& p, const std::filesystem::path& base) {
+    std::error_code ec;
+    auto rel = std::filesystem::relative(p, base, ec);
+    if (ec) {
+        rel = p.lexically_normal().lexically_relative(base.lexically_normal());
+    }
+    return rel;
+}
+
 void Companion::Init(const ExportType type) {
     std::atomic<size_t> assetCount{ 0 };
 
@@ -553,8 +564,8 @@ void Companion::ParseCurrentFileConfig(YAML::Node node, std::atomic<size_t>& ass
 
                 std::string externalFileName =
                     (this->gSourceDirectory / externalFile.as<std::string>()).generic_string();
-                const auto relPath = std::filesystem::relative(externalFileName, this->gAssetPath).string();
-                const auto relCommonPath = std::filesystem::relative(externalFileName, this->gCommonAssetPath).string();
+                const auto relPath = RelativeTo(externalFileName, this->gAssetPath).string();
+                const auto relCommonPath = RelativeTo(externalFileName, this->gCommonAssetPath).string();
                 if (StringHelper::StartsWith(relPath , "../")) {
                     if (StringHelper::StartsWith(relCommonPath, "../"))
                         throw std::runtime_error("External File " + externalFileName + " Not In Asset Directory " +
@@ -575,7 +586,7 @@ void Companion::ParseCurrentFileConfig(YAML::Node node, std::atomic<size_t>& ass
 
                     this->gCurrentFile = externalFileName;
                     this->gCurrentDirectory =
-                        std::filesystem::relative(externalFileName, this->gAssetPath).replace_extension("");
+                        RelativeTo(externalFileName, this->gAssetPath).replace_extension("");
 
                     YAML::Node root = YAML::LoadFile(externalFileName);
 
@@ -1220,9 +1231,9 @@ void Companion::ProcessFile(YAML::Node root, std::atomic<size_t>& assetCount) {
     // directory must be resolved before the loop. Default to the file's own
     // path, then honor a :config directory override (used to register a room's
     // assets under its scene's directory).
-    auto relPath = relative(fs::path(this->gCurrentFile), this->gAssetPath).replace_extension("");
+    auto relPath = RelativeTo(fs::path(this->gCurrentFile), this->gAssetPath).replace_extension("");
     if (StringHelper::StartsWith(relPath.string(), "../"))
-        relPath = relative(fs::path(this->gCurrentFile), this->gCommonAssetPath).replace_extension("");
+        relPath = RelativeTo(fs::path(this->gCurrentFile), this->gCommonAssetPath).replace_extension("");
 
     this->gCurrentDirectory = relPath;
 

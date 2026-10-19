@@ -1,6 +1,11 @@
 # Torch - [T]orch is [O]ur [R]esource [C]onversion [H]elper
 A generic asset processor for games
 
+> **This is a fork for [PaperBoat — Switch Port](https://github.com/Angle-Brackets/PaperBoat-Switch-Port),** from
+> [HarbourMasters/Torch](https://github.com/HarbourMasters/Torch). The `pm64-switch` branch adds the fixes needed to
+> run Torch on a Nintendo Switch, so the port can build its game files on the console. Please report problems with it
+> [on the port](https://github.com/Angle-Brackets/PaperBoat-Switch-Port/issues), not upstream.
+
 ## Usage
 `./torch otr baserom.z64`
 `./torch code baserom.z64`
